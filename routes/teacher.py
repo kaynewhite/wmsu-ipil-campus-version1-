@@ -64,7 +64,7 @@ def teacher_dashboard():
     <div class="card">
       <div class="card-header"><h3 class="card-title">Recent Exams</h3><a href="/teacher/exams" class="btn btn-sm btn-secondary">View All</a></div>
       <div class="table-wrap"><table><thead><tr><th>Exam Title</th><th>Course</th><th>Duration</th><th>Submissions</th><th>Actions</th></tr></thead>
-      <tbody>{exam_rows or '<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">📝</div><p>No exams yet.</p></div></td></tr>'}</tbody></table></div>
+      <tbody>{exam_rows or '<tr><td colspan="5"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V9l-6-6z"/><path d="M9 3v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg></div><p>No exams yet.</p></div></td></tr>'}</tbody></table></div>
     </div></main></div>"""
     return render(html, "Teacher Dashboard")
 
@@ -101,7 +101,7 @@ def teacher_exams():
     <div class="alert-zone"></div>
     <div class="card"><div class="table-wrap"><table>
       <thead><tr><th>Title</th><th>Course</th><th>Questions</th><th>Duration</th><th>Submissions</th><th>Actions</th></tr></thead>
-      <tbody>{rows or '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📝</div><p>No exams yet.</p></div></td></tr>'}</tbody>
+      <tbody>{rows or '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V9l-6-6z"/><path d="M9 3v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg></div><p>No exams yet.</p></div></td></tr>'}</tbody>
     </table></div></div></main></div>
     <script>
     function delExam(id) {{
@@ -215,7 +215,7 @@ def teacher_exam_results(eid):
     <div style="display:flex;gap:10px"><button class="btn btn-secondary" onclick="exportPDF()">Export PDF</button><button class="btn btn-success" onclick="exportExcel()">Export Excel</button></div></div>
     <div class="card"><div class="table-wrap"><table>
       <thead><tr><th>Student</th><th>Email</th><th>Score</th><th>Percentage</th><th>Status</th><th>Submitted</th></tr></thead>
-      <tbody>{rows or '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📊</div><p>No submissions yet</p></div></td></tr>'}</tbody>
+      <tbody>{rows or '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16"/><path d="M7 15v4"/><path d="M12 11v8"/><path d="M17 7v12"/></svg></div><p>No submissions yet</p></div></td></tr>'}</tbody>
     </table></div></div></main></div>
     <script>
     function exportPDF(){{window.open('/api/teacher/exams/{eid}/export/pdf','_blank');}}
@@ -258,7 +258,7 @@ def teacher_essays():
     html = sidebar("teacher", "essays") + f"""
     <div class="topbar"><div><div class="page-title">Essay Reviews</div></div></div>
     <div class="alert-zone"></div>
-    <div style="max-width:900px;margin:0 auto">{cards or '<div class="empty-state"><div class="empty-icon">✏️</div><p>No essays to review.</p></div>'}</div>
+    <div style="max-width:900px;margin:0 auto">{cards or '<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5l4 4-10 10H6v-4l10-10z"/></svg></div><p>No essays to review.</p></div>'}</div>
     </main></div>
     <script>
     function saveReview(id){{
@@ -287,7 +287,7 @@ def teacher_results():
     html = sidebar("teacher", "results") + f"""
     <div class="topbar"><div><div class="page-title">Overall Results</div></div></div>
     <div class="card"><div class="card-header"><h3 class="card-title">My Exams</h3></div>
-    <div style="margin-top:20px">{links or '<div class="empty-state"><div class="empty-icon">📊</div><p>No exams yet.</p></div>'}</div></div></main></div>"""
+    <div style="margin-top:20px">{links or '<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16"/><path d="M7 15v4"/><path d="M12 11v8"/><path d="M17 7v12"/></svg></div><p>No exams yet.</p></div>'}</div></div></main></div>"""
     return render(html, "Results")
 
 

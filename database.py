@@ -72,13 +72,17 @@ _SCHEMA = """
         FOREIGN KEY(exam_id)    REFERENCES exams(id)
     );
     CREATE TABLE IF NOT EXISTS verification_codes (
-        id         INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id    INTEGER,
-        email      TEXT NOT NULL,
-        code       TEXT NOT NULL,
-        type       TEXT NOT NULL,
-        attempts   INTEGER DEFAULT 0,
-        expires_at TEXT    NOT NULL
+        id               INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id          INTEGER,
+        email            TEXT NOT NULL,
+        code             TEXT NOT NULL,
+        type             TEXT NOT NULL,
+        attempts         INTEGER DEFAULT 0,
+        expires_at       TEXT    NOT NULL,
+        pending_name     TEXT,
+        pending_role     TEXT,
+        pending_password TEXT,
+        pending_user_id  TEXT
     );
     CREATE TABLE IF NOT EXISTS essay_reviews (
         id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -100,6 +104,18 @@ def init_db():
         print("[DB] Migration: user_id column added to users table.")
     except Exception:
         pass
+    for column in [
+        ('verification_codes', 'pending_name'),
+        ('verification_codes', 'pending_role'),
+        ('verification_codes', 'pending_password'),
+        ('verification_codes', 'pending_user_id'),
+    ]:
+        try:
+            db.execute(f"ALTER TABLE {column[0]} ADD COLUMN {column[1]} TEXT")
+            db.commit()
+            print(f"[DB] Migration: {column[1]} column added to {column[0]} table.")
+        except Exception:
+            pass
     cur = db.execute("SELECT id FROM users WHERE email='admin@admin.com'")
     if not cur.fetchone():
         hashed = bcrypt.hashpw(b"admin123", bcrypt.gensalt()).decode()

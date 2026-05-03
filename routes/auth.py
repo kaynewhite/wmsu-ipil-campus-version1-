@@ -4,7 +4,7 @@ import bcrypt
 
 from database import get_db
 from email_utils import send_email, email_template, generate_code, store_code
-from helpers import render
+from helpers import render, login_required
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -76,7 +76,7 @@ document.querySelectorAll('.form-input').forEach(i=>i.addEventListener('keydown'
 
 @auth_bp.route("/register")
 def register_page():
-    return render(f"""
+    return render(rf"""
 <div class="auth-bg">
   <div class="auth-card" style="max-width:460px">
     <div class="auth-logo">
@@ -134,7 +134,7 @@ function doRegister(){{
   fetch('/api/register',{{method:'POST',headers:{{'Content-Type':'application/json'}},
     body:JSON.stringify({{name,email,role,user_id,password:pass}})}})
   .then(r=>r.json()).then(d=>{{
-    if(d.success){{showAlert('Registration successful! Redirecting...','success');setTimeout(()=>location.href='/login',1500);}}
+    if(d.success){{showAlert('Verification email sent. Check your inbox.','success');setTimeout(()=>location.href=d.redirect||'/verify?email='+encodeURIComponent(email)+'&type=register',1500);}}
     else showAlert(d.error||'Registration failed.');
   }});
 }}
@@ -264,6 +264,74 @@ function doReset(){{
 """, "Reset Password")
 
 
+@auth_bp.route("/profile")
+@login_required
+def profile_page():
+    db = get_db()
+    user = db.execute("SELECT * FROM users WHERE id=?", (session["user_id"],)).fetchone()
+    db.close()
+    return render(f"""
+<div class="auth-bg">
+  <div class="auth-card" style="max-width:520px">
+    <div class="auth-logo">
+      <div class="logo-icon">{LOGO}</div>
+      <h1>My Profile</h1>
+      <p>Update your profile details securely.</p>
+    </div>
+    <div class="alert-zone"></div>
+    <div class="form-group">
+      <label class="form-label">Full Name</label>
+      <input id="name" class="form-input" value="{user['name']}" placeholder="Your full name">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email Address</label>
+      <input id="email" class="form-input" type="email" value="{user['email']}" placeholder="you@example.com" readonly>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Student / Teacher ID</label>
+      <input id="user_id" class="form-input" value="{user['user_id'] or ''}" placeholder="ID number">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Current Password</label>
+      <input id="current_password" class="form-input" type="password" placeholder="Enter current password">
+    </div>
+    <div class="form-group">
+      <label class="form-label">New Password</label>
+      <input id="new_password" class="form-input" type="password" placeholder="Leave blank to keep current password">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Confirm New Password</label>
+      <input id="confirm_password" class="form-input" type="password" placeholder="Repeat new password">
+    </div>
+    <button class="btn btn-primary w-full" onclick="saveProfile()" style="justify-content:center">Save Changes</button>
+    <p class="text-center text-sm text-muted mt-16"><a href="/" style="color:var(--red)">← Back to dashboard</a></p>
+  </div>
+</div>
+<script>
+function saveProfile(){{
+  const name=document.getElementById('name').value.trim();
+  const user_id=document.getElementById('user_id').value.trim();
+  const current_password=document.getElementById('current_password').value;
+  const new_password=document.getElementById('new_password').value;
+  const confirm_password=document.getElementById('confirm_password').value;
+
+  if(!name||!user_id||!current_password){{ showAlert('Please fill in your current password and required fields.'); return; }}
+  if(new_password && new_password.length < 6){{ showAlert('New password must be at least 6 characters.'); return; }}
+  if(new_password && new_password !== confirm_password){{ showAlert('New passwords do not match.'); return; }}
+
+  fetch('/api/profile', {{
+    method:'POST',
+    headers:{{'Content-Type':'application/json'}},
+    body:JSON.stringify({{name,user_id,current_password,new_password,confirm_password}})
+  }}).then(r=>r.json()).then(d=>{{
+    if(d.success){{ showAlert(d.message,'success'); }}
+    else showAlert(d.error||'Profile update failed.');
+  }});
+}}
+</script>
+""", "Profile")
+
+
 # ─────────────────────────────────────────────
 # API ROUTES
 # ─────────────────────────────────────────────
@@ -290,14 +358,67 @@ def api_register():
             return jsonify({"error": "That ID number is already taken."})
 
         hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-        db.execute(
-            "INSERT INTO users (name, email, password, role, user_id) VALUES (?,?,?,?,?)",
-            (name, email, hashed, role, user_id)
+        code = generate_code()
+        store_code(db, None, email, code, "register",
+                   pending_name=name,
+                   pending_role=role,
+                   pending_password=hashed,
+                   pending_user_id=user_id)
+        send_email(
+            email,
+            "ExamSys Registration Verification",
+            email_template(
+                "Verify Your Email Address", code,
+                "Enter this code below to complete your account registration.",
+            ),
         )
-        db.commit()
-        return jsonify({"success": True})
+        return jsonify({"success": True, "redirect": f"/verify?email={email}&type=register"})
     except Exception as e:
         return jsonify({"error": f"Registration error: {str(e)}"})
+    finally:
+        db.close()
+
+
+@auth_bp.route("/api/profile", methods=["POST"])
+@login_required
+def api_profile():
+    data = request.json
+    name = (data.get("name", "") or "").strip()
+    user_id = (data.get("user_id", "") or "").strip()
+    current_password = data.get("current_password", "")
+    new_password = data.get("new_password", "")
+    confirm_password = data.get("confirm_password", "")
+
+    if not all([name, user_id, current_password]):
+        return jsonify({"error": "All required fields are required."})
+    if new_password and new_password != confirm_password:
+        return jsonify({"error": "New passwords do not match."})
+
+    db = get_db()
+    try:
+        user = db.execute("SELECT * FROM users WHERE id=?", (session["user_id"],)).fetchone()
+        if not user:
+            return jsonify({"error": "User not found."})
+        if not bcrypt.checkpw(current_password.encode(), user["password"].encode()):
+            return jsonify({"error": "Current password is incorrect."})
+        if user_id != user["user_id"] and db.execute("SELECT id FROM users WHERE user_id=?", (user_id,)).fetchone():
+            return jsonify({"error": "That ID is already in use."})
+
+        query = "UPDATE users SET name=?, user_id=?"
+        params = [name, user_id]
+        if new_password:
+            hashed = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
+            query += ", password=?"
+            params.append(hashed)
+        query += " WHERE id=?"
+        params.append(session["user_id"])
+
+        db.execute(query, tuple(params))
+        db.commit()
+        session["name"] = name
+        return jsonify({"success": True, "message": "Profile updated successfully."})
+    except Exception as e:
+        return jsonify({"error": str(e)})
     finally:
         db.close()
 
@@ -315,28 +436,16 @@ def api_login():
             return jsonify({"error": "No account found with this email."})
         if not bcrypt.checkpw(password.encode(), user["password"].encode()):
             return jsonify({"error": "Incorrect password."})
+        if not user["is_verified"]:
+            return jsonify({"error": "Your account is not verified yet. Please complete the signup verification email."})
+
+        session["user_id"] = user["id"]
+        session["role"]    = user["role"]
+        session["name"]    = user["name"]
 
         if user["role"] == "admin":
-            session["user_id"] = user["id"]
-            session["role"]    = "admin"
-            session["name"]    = user["name"]
             return jsonify({"success": True, "redirect": "/admin"})
-
-        code = generate_code()
-        store_code(db, user["id"], email, code, "login")
-        send_email(
-            email,
-            "ExamSys Login Verification",
-            email_template(
-                "Login Verification Code", code,
-                "Use this code to complete your login. It expires in 10 minutes.",
-            ),
-        )
-
-        session["pending_user_id"] = user["id"]
-        session["pending_role"]    = user["role"]
-        session["pending_name"]    = user["name"]
-        return jsonify({"success": True, "redirect": f"/verify?email={email}&type=login"})
+        return jsonify({"success": True, "redirect": f"/{user['role']}"})
     except Exception as e:
         return jsonify({"error": f"Login error: {str(e)}"})
     finally:
@@ -367,18 +476,24 @@ def api_verify():
         db.execute("DELETE FROM verification_codes WHERE id=?", (rec["id"],))
         db.commit()
 
-        if vtype == "login":
-            uid  = session.get("pending_user_id")
-            role = session.get("pending_role")
-            name = session.get("pending_name")
-            session.clear()
-            session["user_id"] = uid
-            session["role"]    = role
-            session["name"]    = name
-            redirect_map = {"admin": "/admin", "teacher": "/teacher", "student": "/student"}
-            return jsonify({"success": True, "redirect": redirect_map.get(role, "/")})
+        if vtype == "register":
+            existing = db.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
+            if existing:
+                return jsonify({"error": "This email is already registered."})
 
-        return jsonify({"success": True})
+            db.execute(
+                "INSERT INTO users (name, email, password, role, user_id, is_verified) VALUES (?,?,?,?,?,1)",
+                (rec["pending_name"], email, rec["pending_password"], rec["pending_role"], rec["pending_user_id"]),
+            )
+            db.commit()
+            user = db.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
+            session["user_id"] = user["id"]
+            session["role"]    = user["role"]
+            session["name"]    = user["name"]
+            redirect_map = {"admin": "/admin", "teacher": "/teacher", "student": "/student"}
+            return jsonify({"success": True, "redirect": redirect_map.get(user["role"], "/")})
+
+        return jsonify({"error": "Verification type not supported."})
     except Exception as e:
         return jsonify({"error": str(e)})
     finally:

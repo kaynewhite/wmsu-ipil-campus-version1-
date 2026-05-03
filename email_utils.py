@@ -57,7 +57,9 @@ def generate_code() -> str:
     """Return a random 6-digit numeric code."""
     return "".join(random.choices(string.digits, k=6))
 
-def store_code(db, user_id, email: str, code: str, code_type: str):
+def store_code(db, user_id, email: str, code: str, code_type: str,
+               pending_name: str = None, pending_role: str = None,
+               pending_password: str = None, pending_user_id: str = None):
     """Persist a fresh verification code (replaces any existing one of the same type)."""
     expires = (datetime.now() + timedelta(minutes=10)).strftime("%Y-%m-%d %H:%M:%S")
     db.execute(
@@ -65,7 +67,7 @@ def store_code(db, user_id, email: str, code: str, code_type: str):
         (email, code_type),
     )
     db.execute(
-        "INSERT INTO verification_codes (user_id, email, code, type, expires_at) VALUES (?,?,?,?,?)",
-        (user_id, email, code, code_type, expires),
+        "INSERT INTO verification_codes (user_id, email, code, type, expires_at, pending_name, pending_role, pending_password, pending_user_id) VALUES (?,?,?,?,?,?,?,?,?)",
+        (user_id, email, code, code_type, expires, pending_name, pending_role, pending_password, pending_user_id),
     )
     db.commit()

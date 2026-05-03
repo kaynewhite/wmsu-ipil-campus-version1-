@@ -68,18 +68,51 @@ def student_dashboard():
     <div class="grid grid-2">
       <div>
         <h3 style="margin-bottom:12px;font-family:'Syne',sans-serif">Available Exams ({len(available)})</h3>
-        {avail_cards or '<div class="card"><div class="empty-state"><div class="empty-icon">🎉</div><p>No new exams available</p></div></div>'}
+        {avail_cards or '<div class="card"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V9l-6-6z"/><path d="M9 3v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg></div><p>No new exams available</p></div></div>'}
       </div>
       <div class="card">
         <h3 class="card-title" style="margin-bottom:16px">Grade History</h3>
         <div class="table-wrap">
           <table><thead><tr><th>Exam</th><th>Course</th><th>Score</th><th>%</th><th>Status</th></tr></thead>
-          <tbody>{grade_rows or '<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">📊</div><p>No grades yet</p></div></td></tr>'}</tbody></table>
+          <tbody>{grade_rows or '<tr><td colspan="5"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16"/><path d="M7 15v4"/><path d="M12 11v8"/><path d="M17 7v12"/></svg></div><p>No grades yet</p></div></td></tr>'}</tbody></table>
         </div>
       </div>
     </div>
   </main></div>"""
     return render(html, "Dashboard")
+
+
+@student_bp.route("/student/exams")
+@student_bp.route("/student/exams/")
+@login_required
+@role_required("student")
+def student_exams():
+    db = get_db()
+    sid = session["user_id"]
+
+    taken_ids = [r["exam_id"] for r in db.execute(
+        "SELECT exam_id FROM results WHERE student_id=?", (sid,)).fetchall()]
+
+    available = db.execute(
+        """SELECT e.*, c.course_name FROM exams e
+           JOIN courses c ON e.course_id=c.id
+           WHERE e.id NOT IN ({}) AND e.is_active=1
+           ORDER BY e.id DESC""".format(
+            ",".join(str(i) for i in taken_ids) if taken_ids else "0"
+        )
+    ).fetchall()
+    db.close()
+
+    avail_cards = "".join(
+        f"""<div class=\"card\" style=\"margin-bottom:12px\">\n      <div class=\"flex justify-between items-center\">\n        <div><div class=\"font-bold\">{e['title']}</div>\n             <div class=\"text-sm text-muted\">{e['course_name']} · {e['timer_minutes']} min</div></div>\n        <a href=\"/student/exam/{e['id']}\" class=\"btn btn-primary btn-sm\">Take Exam</a>\n      </div></div>"""
+        for e in available
+    )
+
+    html = sidebar("student", "exams") + f"""
+    <div class=\"topbar\"><div><div class=\"page-title\">Available Exams</div><div class=\"page-sub\">Find the next exam to take</div></div></div>
+    <div class="card">{avail_cards or '<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V9l-6-6z"/><path d="M9 3v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg></div><p>No new exams available</p></div>'}</div>
+  </main></div>"""
+    return render(html, "Available Exams")
 
 
 @student_bp.route("/student/grades")
@@ -111,7 +144,7 @@ def student_grades():
     <div class="topbar"><div><div class="page-title">My Grades</div><div class="page-sub">Overall Average: {avg:.1f}%</div></div></div>
     <div class="card"><div class="table-wrap">
       <table><thead><tr><th>Exam</th><th>Course</th><th>Score</th><th>Percentage</th><th>Status</th><th>Date</th></tr></thead>
-      <tbody>{rows or '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📊</div><p>No grades yet</p></div></td></tr>'}</tbody></table>
+      <tbody>{rows or '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16"/><path d="M7 15v4"/><path d="M12 11v8"/><path d="M17 7v12"/></svg></div><p>No grades yet</p></div></td></tr>'}</tbody></table>
     </div></div>
   </main></div>"""
     return render(html, "My Grades")
@@ -130,7 +163,7 @@ def student_take_exam(eid):
         db.close()
         return render(sidebar("student", "exams") + """
             <div class="card text-center" style="margin:40px auto;max-width:400px">
-              <div class="empty-icon" style="font-size:64px">🔒</div>
+              <div class="empty-icon" style="font-size:64px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg></div>
               <h2 style="margin:16px 0 8px">Already Submitted</h2>
               <p class="text-muted">You have already taken this exam. Only one attempt is allowed.</p>
               <a href="/student" class="btn btn-primary" style="margin-top:20px">Back to Dashboard</a>

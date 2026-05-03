@@ -1,19 +1,34 @@
 import random
 import string
-from datetime import datetime, timedelta
 import requests
+from datetime import datetime, timedelta
 
-from config import EMAIL_ENABLED, MAILGUN_API_KEY, MAILGUN_DOMAIN
-
-# ─────────────────────────────────────────────
-#  EMAIL
-# ─────────────────────────────────────────────
+from config import EMAIL_ENABLED, RESEND_API_KEY, MAIL_FROM_NAME
 
 def send_email(to_email: str, subject: str, body: str) -> bool:
-    """Send an HTML email via Mailgun. Returns True on success."""
+    """Send an HTML email via Resend API. Returns True on success."""
     if not EMAIL_ENABLED:
         print(f"[EMAIL DISABLED] Would have sent to {to_email}: {subject}")
         return False
+
+    try:
+        response = requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "from": f"{MAIL_FROM_NAME} <onboarding@resend.dev>",
+                "to": to_email,
+                "subject": subject,
+                "html": body,
+            }
+        )
+
+        response.raise_for_status()
+        print("[EMAIL SENT SUCCESSFULLY]")
+        return True
 
     try:
         response = requests.post(

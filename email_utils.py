@@ -1,37 +1,39 @@
 import random
 import string
-import smtplib
-from email.mime.text import MIMEText
 from datetime import datetime, timedelta
+import requests
 
-from config import EMAIL_ENABLED, MAIL_USERNAME, MAIL_PASSWORD
-
+from config import EMAIL_ENABLED, MAILGUN_API_KEY, MAILGUN_DOMAIN
 
 # ─────────────────────────────────────────────
 #  EMAIL
 # ─────────────────────────────────────────────
 
 def send_email(to_email: str, subject: str, body: str) -> bool:
-    """Send an HTML email. Returns True on success."""
+    """Send an HTML email via Mailgun. Returns True on success."""
     if not EMAIL_ENABLED:
         print(f"[EMAIL DISABLED] Would have sent to {to_email}: {subject}")
         return False
 
     try:
-        msg = MIMEText(body, "html")
-        msg["Subject"] = subject
-        msg["From"]    = MAIL_USERNAME
-        msg["To"]      = to_email
+        response = requests.post(
+            f"https://api.mailgun.net/v3/{MAILGUN_DOMAIN}/messages",
+            auth=("api", MAILGUN_API_KEY),
+            data={
+                "from": f"Your App <mailgun@{MAILGUN_DOMAIN}>",
+                "to": to_email,
+                "subject": subject,
+                "html": body,
+            }
+        )
 
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.starttls()
-        server.login(MAIL_USERNAME, MAIL_PASSWORD)
-        server.sendmail(MAIL_USERNAME, to_email, msg.as_string())
-        server.quit()
-
+        response.raise_for_status()
         print("[EMAIL SENT SUCCESSFULLY]")
         return True
 
+    except requests.exceptions.HTTPError as e:
+        print("[EMAIL ERROR]", e.response.status_code, e.response.text)
+        return False
     except Exception as e:
         print("[EMAIL ERROR]", str(e))
         return False

@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 """
 ========================================================
   ONLINE EXAMINATION SYSTEM - Modular Flask App
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     print("  NOTE: Check console for email verification")
     print("        codes if SMTP is not configured.")
     print("=" * 55 + "\n")
-=======
+ 
 """
 ========================================================
   ONLINE EXAMINATION SYSTEM - Modular Flask App
@@ -106,5 +106,5 @@ if __name__ == "__main__":
     print("  NOTE: Check console for email verification")
     print("        codes if SMTP is not configured.")
     print("=" * 55 + "\n")
->>>>>>> e2dc1e8a74b897af2d3a59c50788a81339e5c41f
+ 
     app.run(debug=True, port=5000)

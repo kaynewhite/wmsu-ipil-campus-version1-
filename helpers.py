@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+ 
 from functools import wraps
 from flask import session, redirect, url_for, jsonify
 
@@ -334,7 +334,7 @@ def sidebar(role: str, active: str = "dashboard") -> str:
       <button class="logout-btn" onclick="logout()">Sign Out</button>
     </div>
   </aside>
-=======
+ 
 from functools import wraps
 from flask import session, redirect, url_for, jsonify
 
@@ -670,5 +670,5 @@ def sidebar(role: str, active: str = "dashboard") -> str:
       <button class="logout-btn" onclick="logout()">Sign Out</button>
     </div>
   </aside>
->>>>>>> e2dc1e8a74b897af2d3a59c50788a81339e5c41f
+ 
   <main class="main">"""

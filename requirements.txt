@@ -1,3 +1,10 @@
+<<<<<<< HEAD
 flask
 bcrypt
 gunicorn
+=======
+flask
+bcrypt
+gunicorn
+requests
+>>>>>>> e2dc1e8a74b897af2d3a59c50788a81339e5c41f

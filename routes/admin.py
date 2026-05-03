@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+ 
 from flask import Blueprint, request, session, redirect, url_for, jsonify
 
 from database import get_db
@@ -242,7 +242,7 @@ def api_user_role(uid):
     except Exception as e:
         return jsonify({"error": str(e)})
     finally:
-=======
+ 
 from flask import Blueprint, request, session, redirect, url_for, jsonify
 
 from database import get_db
@@ -486,5 +486,5 @@ def api_user_role(uid):
     except Exception as e:
         return jsonify({"error": str(e)})
     finally:
->>>>>>> e2dc1e8a74b897af2d3a59c50788a81339e5c41f
+ 
         db.close()

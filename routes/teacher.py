@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import json
 from datetime import datetime
 from flask import Blueprint, request, session, redirect, url_for, jsonify, make_response
@@ -502,7 +501,7 @@ def export_excel(eid):
     resp = make_response("\n".join(lines))
     resp.headers["Content-Type"] = "text/csv"
     resp.headers["Content-Disposition"] = f'attachment; filename="results_{eid}.csv"'
-=======
+
 import json
 from datetime import datetime
 from flask import Blueprint, request, session, redirect, url_for, jsonify, make_response
@@ -1006,5 +1005,5 @@ def export_excel(eid):
     resp = make_response("\n".join(lines))
     resp.headers["Content-Type"] = "text/csv"
     resp.headers["Content-Disposition"] = f'attachment; filename="results_{eid}.csv"'
->>>>>>> e2dc1e8a74b897af2d3a59c50788a81339e5c41f
+
     return resp

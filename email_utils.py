@@ -1,58 +1,35 @@
 import random
 import string
-import requests
+import smtplib
+from email.mime.text import MIMEText
 from datetime import datetime, timedelta
 
-from config import EMAIL_ENABLED, RESEND_API_KEY, MAIL_FROM_NAME
+from config import EMAIL_ENABLED, MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM_NAME
 
 def send_email(to_email: str, subject: str, body: str) -> bool:
-    """Send an HTML email via Resend API. Returns True on success."""
+    """Send an HTML email via Gmail SMTP. Returns True on success."""
     if not EMAIL_ENABLED:
         print(f"[EMAIL DISABLED] Would have sent to {to_email}: {subject}")
         return False
 
     try:
-        response = requests.post(
-            "https://api.resend.com/emails",
-            headers={
-                "Authorization": f"Bearer {RESEND_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "from": f"{MAIL_FROM_NAME} <onboarding@resend.dev>",
-                "to": to_email,
-                "subject": subject,
-                "html": body,
-            }
-        )
+        msg = MIMEText(body, "html")
+        msg["Subject"] = subject
+        msg["From"]    = f"{MAIL_FROM_NAME} <{MAIL_USERNAME}>"
+        msg["To"]      = to_email
 
-        response.raise_for_status()
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.starttls()
+        server.login(MAIL_USERNAME, MAIL_PASSWORD)
+        server.sendmail(MAIL_USERNAME, to_email, msg.as_string())
+        server.quit()
+
         print("[EMAIL SENT SUCCESSFULLY]")
         return True
 
-    try:
-        response = requests.post(
-            f"https://api.mailgun.net/v3/{MAILGUN_DOMAIN}/messages",
-            auth=("api", MAILGUN_API_KEY),
-            data={
-                "from": f"Your App <mailgun@{MAILGUN_DOMAIN}>",
-                "to": to_email,
-                "subject": subject,
-                "html": body,
-            }
-        )
-
-        response.raise_for_status()
-        print("[EMAIL SENT SUCCESSFULLY]")
-        return True
-
-    except requests.exceptions.HTTPError as e:
-        print("[EMAIL ERROR]", e.response.status_code, e.response.text)
-        return False
     except Exception as e:
         print("[EMAIL ERROR]", str(e))
         return False
-
 
 def email_template(title: str, code: str, message: str) -> str:
     """Return a branded HTML email body."""
@@ -76,15 +53,9 @@ def email_template(title: str, code: str, message: str) -> str:
       </div>
     </div>"""
 
-
-# ─────────────────────────────────────────────
-#  VERIFICATION CODE HELPERS
-# ─────────────────────────────────────────────
-
 def generate_code() -> str:
     """Return a random 6-digit numeric code."""
     return "".join(random.choices(string.digits, k=6))
-
 
 def store_code(db, user_id, email: str, code: str, code_type: str):
     """Persist a fresh verification code (replaces any existing one of the same type)."""
